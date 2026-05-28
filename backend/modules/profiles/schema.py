@@ -78,6 +78,7 @@ class ProfileResponse(BaseModel):
     gender: Optional[str] = None
     dob: Optional[date] = None
     email: Optional[str] = None
+    phone_number: Optional[str] = None
     profession: Optional[str] = None
     state: Optional[str] = None
     district: Optional[str] = None
@@ -109,6 +110,7 @@ class ProfileResponse(BaseModel):
     nominee_pincode: Optional[str] = None
     
     profile_completion: int
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
 

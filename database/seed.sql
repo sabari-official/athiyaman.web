@@ -55,16 +55,16 @@ INSERT INTO levels (level_number, reward_amount, requirement_type, requirement_v
 -- 3. SEED MODULE: SYSTEM ROLES & USERS
 -- =========================================================
 
--- Root Administrator (Password: admin123 -> Bcrypt representation)
+-- Root Administrator (Password: Admin@12345 -> Argon2id representation)
 INSERT INTO users (id, username, phone_number, password_hash, role, user_status, is_verified, must_change_password, created_at, updated_at) VALUES 
-('00000000-0000-7000-0000-000000000001', 'admin', '9999999990', '$2b$12$K8M.a8g.J6p64VbW7DEXZ.qU.R78F0T1P8j5e1s2v3t4o5r6q7u8w', 'ADMIN', 'ACTIVE', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('00000000-0000-7000-0000-000000000001', 'admin', '9999999990', '$argon2id$v=19$m=65536,t=3,p=4$KsU4hzBGKMV4bw3hPEfIeQ$LyWDizXar93DVbxGvb+cL7PKNDNHBL3FLPFzCnx5jlk', 'ADMIN', 'ACTIVE', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO user_profiles (id, user_id, full_name, profile_completion, created_at, updated_at) VALUES 
 ('00000000-0000-7000-0000-000000000201', '00000000-0000-7000-0000-000000000001', 'System Administrator', 100, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- System Developer (Password: dev123 -> Bcrypt representation)
+-- System Developer (Password: Dev@12345 -> Argon2id representation)
 INSERT INTO users (id, username, phone_number, password_hash, role, user_status, is_verified, must_change_password, created_at, updated_at) VALUES 
-('00000000-0000-7000-0000-000000000002', 'developer', '8888888888', '$2b$12$R78F0T1P8j5e1s2v3t4o5r6q7u8w.K8M.a8g.J6p64VbW7DEXZ.qU', 'DEVELOPER', 'ACTIVE', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('00000000-0000-7000-0000-000000000002', 'developer', '8888888888', '$argon2id$v=19$m=65536,t=3,p=4$UYpRKmVsDWFsjbE25tybcw$sH7Xvl8uzHoxqwcaPOf+Z2MKb6ZkfF2HeE9WERFaUF4', 'DEVELOPER', 'ACTIVE', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO user_profiles (id, user_id, full_name, profile_completion, created_at, updated_at) VALUES 
 ('00000000-0000-7000-0000-000000000202', '00000000-0000-7000-0000-000000000002', 'System Developer', 100, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

@@ -7,6 +7,9 @@
 @layer base {
   body {
     @apply bg-background text-text font-sans antialiased overflow-x-hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(255, 153, 51, 0.04) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(18, 136, 7, 0.04) 0px, transparent 50%);
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-sans tracking-tight;
@@ -14,45 +17,77 @@
 }
 
 @layer components {
-  /* Ultra-Premium Glassmorphic Buttons with Dynamic Lifting & Active Compression */
+  /* Government-style grand buttons */
   .btn-primary {
-    @apply bg-primary hover:bg-deep-blue text-white font-extrabold py-3 px-6 rounded-2xl shadow-btn transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none;
+    @apply bg-primary hover:bg-deep-blue text-white font-extrabold py-3 px-6 rounded-2xl shadow-btn transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none border border-primary/20;
+    background: linear-gradient(135deg, #0B3C5D 0%, #082b43 100%);
   }
   .btn-secondary {
-    @apply bg-secondary hover:bg-[#27729e] text-white font-extrabold py-3 px-6 rounded-2xl shadow-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none;
+    @apply bg-secondary hover:bg-[#27729e] text-white font-extrabold py-3 px-6 rounded-2xl shadow-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none border border-secondary/20;
+    background: linear-gradient(135deg, #328CC1 0%, #246a94 100%);
   }
   .btn-danger {
     @apply bg-danger hover:bg-[#d32f2f] text-white font-extrabold py-3 px-6 rounded-2xl shadow-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none;
   }
   .btn-outline {
-    @apply border-2 border-slate-200 text-slate-700 bg-white/50 backdrop-blur hover:bg-slate-50 font-extrabold py-3 px-6 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed select-none;
+    @apply border-2 border-slate-200 text-slate-700 bg-white/70 backdrop-blur hover:bg-slate-50 font-extrabold py-3 px-6 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed select-none;
   }
   
-  /* Modern Frosted Glass Inputs */
+  /* Modern Government Frosted Inputs */
   .input-field {
-    @apply block w-full rounded-2xl border-white/50 bg-white/50 backdrop-blur-md shadow-card focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm border p-3.5 transition-all outline-none hover:bg-white/70 focus:bg-white focus:shadow-md;
+    @apply block w-full rounded-2xl border-slate-200 bg-white/70 backdrop-blur-md shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm border p-3.5 transition-all outline-none hover:bg-white focus:bg-white focus:shadow-md;
   }
   
-  /* Highly Transparent Crystal Glass Cards */
+  /* Government-style Grand Cards with Ashoka Gold Trim */
   .card {
-    @apply bg-white/40 backdrop-blur-lg rounded-3xl border border-white/60 shadow-xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-white/90 hover:scale-[1.01] transform;
+    @apply bg-white/80 backdrop-blur-lg rounded-3xl border border-slate-200/80 shadow-xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-amber-400/40 hover:scale-[1.005] transform;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Glass card custom style */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 10px 40px 0 rgba(15, 23, 42, 0.03);
+  }
+
+  /* Tricolor top indicator border for Government layout cards */
+  .gov-tricolor-bar {
+    position: relative;
+    overflow: hidden;
+  }
+  .gov-tricolor-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #FF9933 0%, #FFFFFF 50%, #128807 100%);
+  }
+
+  /* Gold trim for highlight cards (e.g. premium items, awards, milestones) */
+  .gold-trim-card {
+    @apply border-t-4 border-t-amber-500/80 shadow-lg bg-white/95 rounded-3xl p-6 transition-all hover:scale-[1.01];
   }
 }
 
 /* Premium Animations & Glow Effects */
 @keyframes float {
   0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(1.5deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
   100% { transform: translateY(0px) rotate(0deg); }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.2; filter: blur(70px); transform: scale(1); }
-  50% { opacity: 0.45; filter: blur(95px); transform: scale(1.15); }
+  0%, 100% { opacity: 0.1; filter: blur(80px); transform: scale(1); }
+  50% { opacity: 0.25; filter: blur(105px); transform: scale(1.1); }
 }
 
 @keyframes fade-in-up {
-  0% { opacity: 0; transform: translateY(30px); }
+  0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
@@ -61,24 +96,23 @@
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 8s ease-in-out infinite;
+  animation: pulse-glow 10s ease-in-out infinite;
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Crystal Glass Card Utility Class */
-.glass-card {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 10px 40px 0 rgba(15, 23, 42, 0.05);
+  animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .text-gradient {
   background: linear-gradient(135deg, #0B3C5D 0%, #328CC1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Saffron, White, Green Tricolor Text Accents */
+.text-tricolor {
+  background: linear-gradient(90deg, #FF9933 0%, #0B3C5D 50%, #128807 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

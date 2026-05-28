@@ -105,13 +105,20 @@ def change_password(payload: ChangePasswordRequest, current_user = Depends(get_c
         service.change_password(
             user_id=str(current_user.id),
             current_password=payload.current_password,
-            new_password=payload.new_password
+            new_password=payload.new_password,
+            new_username=payload.new_username
         )
         return {"status": "success", "message": "Password changed successfully"}
     except ValueError as e:
+        error_msg = str(e)
+        if error_msg == "USERNAME_TAKEN":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "USERNAME_TAKEN", "message": "This username is already taken by another account."}
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "PASSWORD_CHANGE_FAILED", "message": str(e)}
+            detail={"code": "PASSWORD_CHANGE_FAILED", "message": error_msg}
         )
 
 @router.post("/verify-aadhaar", response_model=VerifyAadhaarResponse, status_code=status.HTTP_200_OK)
@@ -121,3 +128,12 @@ def verify_aadhaar(payload: VerifyAadhaarRequest):
     """
     is_valid = validate_aadhaar(payload.aadhaar)
     return VerifyAadhaarResponse(valid=is_valid)
+
+@router.get("/check-username", status_code=status.HTTP_200_OK)
+def check_username(username: str, db: Session = Depends(get_db)):
+    """
+    Checks if a username is already taken.
+    """
+    service = AuthService(db)
+    exists = service.user_repo.get_by_username(username) is not None
+    return {"available": not exists}

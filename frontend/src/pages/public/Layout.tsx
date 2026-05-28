@@ -76,8 +76,12 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               </p>
             </div>
           </div>
-          <div className="border-t border-gray-700 pt-6 text-center text-gray-400">
+          <div className="border-t border-gray-750 pt-6 text-center text-gray-400 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
             <p>&copy; 2026 Athiyaman Platform. All rights reserved.</p>
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-full select-none hover:bg-white/10 transition text-[10px]">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Developed with ❤️ by <strong className="text-white hover:text-amber-400 transition cursor-pointer">Freelancing Agency</strong></span>
+            </div>
           </div>
         </div>
       </footer>

@@ -30,21 +30,28 @@ export function Instructions() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-4xl font-bold mb-2">Athiyaman Platform Instructions</h1>
-        <p className="text-gray-600 mb-8">Complete guide to using the platform and maximizing your earnings</p>
+    <div className="min-h-screen bg-slate-50 py-10 animate-fade-in-up">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-10 text-center md:text-left">
+          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
+            🇮🇳 Government Guidelines
+          </span>
+          <h1 className="text-4xl font-black text-slate-800 tracking-tight mt-3">
+            Athiyaman Portal Instructions
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Complete official guide to utilizing the portal, rules verification, and level progressions.</p>
+        </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-thin">
           {tabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded font-medium capitalize whitespace-nowrap transition ${
+              className={`px-5 py-2.5 rounded-2xl font-extrabold capitalize whitespace-nowrap transition-all duration-300 text-xs tracking-wider border select-none ${
                 activeTab === tab
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  ? 'bg-primary border-primary text-white shadow-md'
+                  : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white hover:text-slate-800'
               }`}
             >
               {tab}

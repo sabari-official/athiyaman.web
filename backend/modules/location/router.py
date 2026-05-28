@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from backend.modules.location.service import LocationService
 from backend.modules.location.schema import PincodeLocationResponse
 
-router = APIRouter(prefix="/api/v1/location", tags=["Location Auto-Fill"])
+router = APIRouter(prefix="/location", tags=["Location Auto-Fill"])
 location_service = LocationService()
 
 @router.get("/pincode/{pincode}", response_model=PincodeLocationResponse)

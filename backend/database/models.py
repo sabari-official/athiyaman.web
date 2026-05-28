@@ -259,6 +259,14 @@ class UserProfile(Base, TimestampMixin):
 
     user = relationship("User", back_populates="profile")
 
+    @property
+    def is_verified(self) -> bool:
+        return self.user.is_verified if self.user else False
+
+    @property
+    def phone_number(self) -> str:
+        return self.user.phone_number if self.user else ""
+
     __table_args__ = (
         Index("idx_user_profiles_full_name", "full_name"),
         Index("idx_user_profiles_district", "district"),

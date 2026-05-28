@@ -183,8 +183,8 @@ class AuthService:
             self.db.rollback()
             raise ValueError(f"SIGNUP_FAILED: {str(e)}")
 
-    def change_password(self, user_id: str, current_password: str, new_password: str):
-        """Forces password change and resets must_change_password flag."""
+    def change_password(self, user_id: str, current_password: str, new_password: str, new_username: str = None):
+        """Forces password change and resets must_change_password flag, optionally updating the username."""
         import uuid
         if isinstance(user_id, str):
             user_id = uuid.UUID(user_id)
@@ -195,6 +195,15 @@ class AuthService:
         if not verify_password(current_password, user.password_hash):
             raise ValueError("INVALID_CURRENT_PASSWORD")
             
+        # Optional: change username
+        if new_username and new_username.strip() and new_username.strip() != user.username:
+            new_username = new_username.strip()
+            # check uniqueness
+            existing = self.user_repo.get_by_username(new_username)
+            if existing:
+                raise ValueError("USERNAME_TAKEN")
+            user.username = new_username
+
         user.password_hash = get_password_hash(new_password)
         user.must_change_password = False
         user.password_changed_at = datetime.datetime.utcnow()

@@ -33,6 +33,7 @@ class ChangePasswordRequest(BaseModel):
     """Schema for forcing a password change on first login or manual change."""
     current_password: str = Field(..., description="Current plain text password")
     new_password: str = Field(..., description="New plain text password", min_length=6)
+    new_username: Optional[str] = Field(None, description="Optional new username to replace temporary username", min_length=3, max_length=50)
 
 class VerifyAadhaarRequest(BaseModel):
     """Schema for validating Aadhaar format via Verhoeff."""

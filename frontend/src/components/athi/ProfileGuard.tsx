@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, User, Landmark, Users, ClipboardList, HelpCircle, CheckCircle } from "lucide-react";
+import { ShieldCheck, User, Landmark, Users, ClipboardList, HelpCircle, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { api, apiError } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import { toast } from "sonner";
+import verhoeff from "verhoeff";
 
 export interface ProfileData {
   profile_completion: number;
+  is_verified: boolean;
   aadhaar_verified: boolean;
   bank_verified: boolean;
   full_name: string;
   gender: string | null;
   dob: string | null;
   email: string | null;
+  phone_number: string | null;
   profession: string | null;
   state: string | null;
   district: string | null;
@@ -38,9 +42,9 @@ export interface ProfileData {
 }
 
 export function ProfileGuard({ children }: { children: React.ReactNode }) {
+  const { signOut } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rulesAccepted, setRulesAccepted] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +52,15 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [profession, setProfession] = useState("");
   
+  // Aadhaar States
+  const [aadhaar, setAadhaar] = useState("");
+  const [aadhaarVerified, setAadhaarVerified] = useState<boolean | null>(null);
+  const [aadhaarError, setAadhaarError] = useState<string | null>(null);
+
+  // Address States
   const [state, setState] = useState("Tamil Nadu");
   const [district, setDistrict] = useState("");
   const [pincode, setPincode] = useState("");
@@ -59,36 +70,65 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
   const [postOffice, setPostOffice] = useState("");
   const [city, setCity] = useState("");
 
-  // Pincode API States for Profile Completion Guard
+  // Pincode API States
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [postOfficeOptions, setPostOfficeOptions] = useState<string[]>([]);
+  const [pincodeError, setPincodeError] = useState<string | null>(null);
 
-  // Pincode Auto-Fill Address API Integration
+  // Bank & Nominee States
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
+  const [nomineeName, setNomineeName] = useState("");
+  const [nomineeRelationship, setNomineeRelationship] = useState("");
+  const [nomineePhone, setNomineePhone] = useState("");
+
+  const [acceptRulesCheck, setAcceptRulesCheck] = useState(false);
+
+  // Live Aadhaar Checksum verification
+  useEffect(() => {
+    if (aadhaar.length === 12) {
+      if (aadhaar.includes("X")) {
+        setAadhaarVerified(true);
+        setAadhaarError(null);
+      } else if (/^\d+$/.test(aadhaar) && verhoeff.validate(aadhaar)) {
+        setAadhaarVerified(true);
+        setAadhaarError(null);
+      } else {
+        setAadhaarVerified(false);
+        setAadhaarError("Invalid Aadhaar number checksum validation failed.");
+      }
+    } else {
+      setAadhaarVerified(null);
+      setAadhaarError(null);
+    }
+  }, [aadhaar]);
+
+  // Pincode Auto-Fill Address API Integration using Backend Proxy Route
   useEffect(() => {
     const fetchPincodeAddress = async () => {
       if (pincode.length === 6 && /^\d+$/.test(pincode)) {
         setIsPincodeLoading(true);
+        setPincodeError(null);
         try {
-          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-          const data = await res.json();
-          if (data && data[0] && data[0].Status === "Success") {
-            const postOfficeList = data[0].PostOffice;
-            if (postOfficeList && postOfficeList.length > 0) {
-              const first = postOfficeList[0];
-              setState(first.State || "Tamil Nadu");
-              setDistrict(first.District || "");
-              setCity(first.Block || first.Division || first.Circle || first.District || "");
-              
-              const options = postOfficeList.map((po: any) => po.Name);
-              setPostOfficeOptions(options);
-              if (!postOffice || !options.includes(postOffice)) {
-                setPostOffice(options[0]);
-              }
-              toast.success("Profile address pre-filled from pincode successfully!");
+          // Fetch via CORS-safe Backend Proxy API
+          const { data } = await api.get(`/location/pincode/${pincode}`);
+          if (data && data.success) {
+            setState(data.state || "Tamil Nadu");
+            setDistrict(data.district || "");
+            setCity(data.city || "");
+            
+            if (data.post_office) {
+              setPostOfficeOptions([data.post_office]);
+              setPostOffice(data.post_office);
             }
+            toast.success("Profile address details pre-filled successfully!");
+          } else {
+            setPincodeError(data.message || "Invalid Pincode or no records found.");
           }
         } catch (e) {
-          console.error("Pincode API failed, falling back to manual entry", e);
+          console.error("Pincode API failed", e);
+          setPincodeError("Unable to query location registry. Please type manually.");
         } finally {
           setIsPincodeLoading(false);
         }
@@ -100,24 +140,6 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
     fetchPincodeAddress();
   }, [pincode]);
 
-  const [bankName, setBankName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [ifscCode, setIfscCode] = useState("");
-
-  const [nomineeName, setNomineeName] = useState("");
-  const [nomineeRelationship, setNomineeRelationship] = useState("");
-  const [nomineePhone, setNomineePhone] = useState("");
-  const [nomineeDoorNo, setNomineeDoorNo] = useState("");
-  const [nomineeStreetName, setNomineeStreetName] = useState("");
-  const [nomineeLandmark, setNomineeLandmark] = useState("");
-  const [nomineePostOffice, setNomineePostOffice] = useState("");
-  const [nomineeCity, setNomineeCity] = useState("");
-  const [nomineeDistrict, setNomineeDistrict] = useState("");
-  const [nomineeState, setNomineeState] = useState("Tamil Nadu");
-  const [nomineePincode, setNomineePincode] = useState("");
-
-  const [acceptRulesCheck, setAcceptRulesCheck] = useState(false);
-
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/profiles/me");
@@ -128,6 +150,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
         setGender(data.gender || "");
         setDob(data.dob || "");
         setEmail(data.email || "");
+        setPhone(data.phone_number || "");
         setProfession(data.profession || "");
         setState(data.state || "Tamil Nadu");
         setDistrict(data.district || "");
@@ -142,14 +165,11 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
         setNomineeName(data.nominee_name || "");
         setNomineeRelationship(data.nominee_relationship || "");
         setNomineePhone(data.nominee_phone || "");
-        setNomineeDoorNo(data.nominee_door_no || "");
-        setNomineeStreetName(data.nominee_street_name || "");
-        setNomineeLandmark(data.nominee_landmark || "");
-        setNomineePostOffice(data.nominee_post_office || "");
-        setNomineeCity(data.nominee_city || "");
-        setNomineeDistrict(data.nominee_district || "");
-        setNomineeState(data.nominee_state || "Tamil Nadu");
-        setNomineePincode(data.nominee_pincode || "");
+
+        if (data.masked_aadhaar) {
+          setAadhaar(data.masked_aadhaar);
+          setAadhaarVerified(true);
+        }
       }
     } catch (err) {
       toast.error("Unable to load profile completion configurations.");
@@ -167,7 +187,13 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
     setError(null);
     setUpdating(true);
 
-    // Minor validation checks
+    // Form validations
+    if (aadhaarError) {
+      setError("Please fix the Aadhaar card checksum error.");
+      setUpdating(false);
+      return;
+    }
+
     if (pincode && (pincode.length !== 6 || !/^\d+$/.test(pincode))) {
       setError("Pincode must consist of exactly 6 numeric digits.");
       setUpdating(false);
@@ -205,15 +231,11 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
         nominee_name: nomineeName || null,
         nominee_relationship: nomineeRelationship || null,
         nominee_phone: nomineePhone || null,
-        nominee_door_no: nomineeDoorNo || null,
-        nominee_street_name: nomineeStreetName || null,
-        nominee_landmark: nomineeLandmark || null,
-        nominee_post_office: nomineePostOffice || null,
-        nominee_city: nomineeCity || null,
-        nominee_district: nomineeDistrict || null,
-        nominee_state: nomineeState || null,
-        nominee_pincode: nomineePincode || null,
       };
+
+      if (aadhaar && !aadhaar.includes("X")) {
+        payload.aadhaar = aadhaar;
+      }
 
       if (accountNumber) {
         payload.account_number = accountNumber;
@@ -236,8 +258,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
       await api.post("/profiles/me/accept-rules", {
         rules_version: "v1.0",
       });
-      toast.success("Platform click-wrap legal rules accepted successfully! Access Unlocked.");
-      setRulesAccepted(true);
+      toast.success("Platform rules accepted successfully! Access Unlocked.");
       fetchProfile();
     } catch (err) {
       toast.error(apiError(err));
@@ -248,38 +269,46 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground text-sm font-medium">
-        Loading Profile Milestones…
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 text-white text-sm font-medium">
+        <Loader2 className="animate-spin h-5 w-5 mr-2 text-primary" /> Loading Profile Milestones…
       </div>
     );
   }
 
-  // If profile is fully complete and rules accepted, release the dashboard
-  if (profile && profile.profile_completion === 100) {
-    // If rules acceptance is already complete inside DB, release
+  // Auto bypass the guard if completed and click-wrap accepted inside DB
+  if (profile && profile.profile_completion === 100 && profile.is_verified) {
     return <>{children}</>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-900/50 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      <div className="max-w-4xl w-full bg-card border border-border rounded-3xl shadow-modal overflow-hidden my-8">
-        {/* Banner */}
-        <div className="bg-nav-gradient text-white p-6 sm:p-8 relative">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
-              <ShieldCheck className="h-6 w-6" />
+    <div className="min-h-screen bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div className="max-w-4xl w-full bg-white/95 backdrop-blur border border-slate-200/80 rounded-3xl shadow-modal overflow-hidden my-8 gov-tricolor-bar animate-fade-in-up">
+        {/* Banner with Saffron/navy tricolor */}
+        <div className="bg-gradient-to-br from-deep-blue to-primary text-white p-6 sm:p-8 relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur border border-white/10 shadow-sm">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <span className="font-extrabold text-sm tracking-tight uppercase">Athiyaman Digital India</span>
             </div>
-            <span className="font-extrabold text-sm tracking-tight">Athiyaman Digital India</span>
+            
+            <button
+              onClick={signOut}
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-black uppercase hover:bg-white/20 transition"
+            >
+              Sign Out
+            </button>
           </div>
 
           <h2 className="mt-6 text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Profile Completion Guard Locked
+            Profile Verification Guard Locked 🇮🇳
           </h2>
-          <p className="mt-2 text-sm text-white/85 max-w-xl leading-relaxed">
-            Under Swachh Bharat guidelines, you must complete your profile to **exactly 100%** (submitting biographical, address, bank payout records, and nominee details) before unlocking dashboard actions.
+          <p className="mt-2 text-xs text-white/80 max-w-xl leading-relaxed">
+            Under Swachh Bharat guidelines, you must complete your profile to **exactly 100%** (submitting biographical, physical address, verified Aadhaar, bank details, and nominee details) before unlocking dashboard actions.
           </p>
 
-          <div className="absolute right-6 bottom-6 hidden md:block">
+          <div className="absolute right-8 bottom-6 hidden md:block">
             <div className="relative flex items-center justify-center">
               <svg className="w-16 h-16 transform -rotate-90">
                 <circle cx="32" cy="32" r="28" className="text-white/15" strokeWidth="6" fill="transparent" />
@@ -287,22 +316,22 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                   cx="32"
                   cy="32"
                   r="28"
-                  className="text-success"
+                  className="text-amber-400 transition-all duration-700"
                   strokeWidth="6"
                   fill="transparent"
                   strokeDasharray={2 * Math.PI * 28}
                   strokeDashoffset={2 * Math.PI * 28 * (1 - (profile?.profile_completion || 0) / 100)}
                 />
               </svg>
-              <span className="absolute text-sm font-extrabold">{profile?.profile_completion || 0}%</span>
+              <span className="absolute text-sm font-black text-amber-300">{profile?.profile_completion || 0}%</span>
             </div>
           </div>
         </div>
 
         {/* Progress Bar (Mobile) */}
-        <div className="md:hidden h-2.5 bg-muted relative">
+        <div className="md:hidden h-2 bg-slate-200 relative">
           <div
-            className="h-full bg-success transition-all duration-500"
+            className="h-full bg-amber-400 transition-all duration-500"
             style={{ width: `${profile?.profile_completion || 0}%` }}
           />
         </div>
@@ -311,18 +340,42 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
         <div className="p-6 sm:p-8">
           {profile && profile.profile_completion < 100 ? (
             <form onSubmit={handleUpdate} className="space-y-8">
+              
               {/* Biographical Details */}
               <div>
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-2">
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                   <User className="h-4.5 w-4.5 text-primary" /> 1. Citizen Biography
                 </h3>
-                <div className="mt-4 grid sm:grid-cols-4 gap-4">
+                <div className="mt-4 grid sm:grid-cols-3 gap-4">
                   <Field label="Full Name" required>
                     <input
                       type="text"
                       disabled
                       value={profile.full_name}
-                      className="input-field mt-1.5 h-11 bg-muted text-muted-foreground opacity-80"
+                      className="input-field mt-1.5 h-11 bg-slate-100 text-slate-400 opacity-80 cursor-not-allowed"
+                    />
+                  </Field>
+
+                  <Field label="Email Address" required>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="input-field mt-1.5 h-11"
+                      placeholder="Enter email address"
+                    />
+                  </Field>
+
+                  <Field label="Phone Number" required>
+                    <input
+                      type="text"
+                      required
+                      disabled={profile.phone_number ? true : false}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      className={`input-field mt-1.5 h-11 ${profile.phone_number ? "bg-slate-100 text-slate-400 opacity-80 cursor-not-allowed" : ""}`}
+                      placeholder="10 digit phone number"
                     />
                   </Field>
 
@@ -357,19 +410,82 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                       value={profession}
                       onChange={(e) => setProfession(e.target.value)}
                       className="input-field mt-1.5 h-11"
-                      placeholder="e.g. Citizen, Farmer"
+                      placeholder="e.g. Citizen, Farmer, Agent"
                     />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Aadhaar Verification */}
+              <div>
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <ShieldCheck className="h-4.5 w-4.5 text-primary" /> 2. Aadhaar Card Verification
+                </h3>
+                <div className="mt-4 max-w-md">
+                  <Field label="Aadhaar Card Number" required>
+                    <div className="relative mt-1.5">
+                      <input
+                        type="text"
+                        required
+                        maxLength={12}
+                        value={aadhaar}
+                        onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, ""))}
+                        className={`input-field h-11 pr-24 ${
+                          aadhaarVerified === true ? "border-emerald-500 bg-emerald-50/20" : aadhaarVerified === false ? "border-red-400 bg-red-50/20" : ""
+                        }`}
+                        placeholder="12 digit number"
+                      />
+                      {aadhaarVerified === true && (
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-[10px] font-black uppercase text-success px-2 py-0.5 rounded-full bg-success-soft border border-success/20 shadow-sm animate-float">
+                          ✓ Verified
+                        </span>
+                      )}
+                      {aadhaarVerified === false && (
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-[10px] font-black uppercase text-danger px-2 py-0.5 rounded-full bg-danger-soft border border-danger/20">
+                          ✗ Invalid
+                        </span>
+                      )}
+                    </div>
+                    {aadhaarError && (
+                      <p className="text-xs text-red-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" /> {aadhaarError}
+                      </p>
+                    )}
                   </Field>
                 </div>
               </div>
 
               {/* Physical Address */}
               <div>
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <ClipboardList className="h-4.5 w-4.5 text-primary" /> 2. Address Details
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <ClipboardList className="h-4.5 w-4.5 text-primary" /> 3. Address Details (Indian PIN Auto-Fill)
                 </h3>
                 <div className="mt-4 grid sm:grid-cols-4 gap-4">
-                  <Field label="Door No" required>
+                  <Field label="Pincode" required>
+                    <div className="relative mt-1.5">
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
+                        className={`input-field h-11 pr-10 ${pincodeError ? "border-red-400 bg-red-50/20" : ""}`}
+                        placeholder="6 digit PIN"
+                      />
+                      {isPincodeLoading && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="animate-spin h-4.5 w-4.5 text-slate-400" />
+                        </span>
+                      )}
+                    </div>
+                    {pincodeError && (
+                      <p className="text-xs text-red-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" /> {pincodeError}
+                      </p>
+                    )}
+                  </Field>
+
+                  <Field label="Door / Flat No" required>
                     <input
                       type="text"
                       required
@@ -399,30 +515,8 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                       value={landmark}
                       onChange={(e) => setLandmark(e.target.value)}
                       className="input-field mt-1.5 h-11"
-                      placeholder="e.g. Opposite Post Office"
+                      placeholder="e.g. Opposite Park"
                     />
-                  </Field>
-
-                  <Field label="Pincode" required>
-                    <div className="relative mt-1.5">
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        value={pincode}
-                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
-                        className="input-field h-11 pr-10"
-                        placeholder="6 digit pincode"
-                      />
-                      {isPincodeLoading && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <svg className="animate-spin h-4.5 w-4.5 text-slate-400" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
                   </Field>
 
                   <Field label="Post Office / Area" required>
@@ -450,14 +544,14 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                     )}
                   </Field>
 
-                  <Field label="City" required>
+                  <Field label="City / Town" required>
                     <input
                       type="text"
                       required
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       className="input-field mt-1.5 h-11"
-                      placeholder="e.g. Chennai"
+                      placeholder="City/Town name"
                     />
                   </Field>
 
@@ -468,7 +562,17 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
                       className="input-field mt-1.5 h-11"
-                      placeholder="e.g. Chennai"
+                      placeholder="District"
+                    />
+                  </Field>
+
+                  <Field label="State" required>
+                    <input
+                      type="text"
+                      required
+                      disabled
+                      value={state}
+                      className="input-field mt-1.5 h-11 bg-slate-100 text-slate-400 opacity-80 cursor-not-allowed"
                     />
                   </Field>
                 </div>
@@ -476,8 +580,8 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
 
               {/* Bank Details */}
               <div>
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <Landmark className="h-4.5 w-4.5 text-primary" /> 3. Banking Details (For Reward Disbursements)
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <Landmark className="h-4.5 w-4.5 text-primary" /> 4. Banking Details (For Reward Payouts)
                 </h3>
                 <div className="mt-4 grid sm:grid-cols-3 gap-4">
                   <Field label="Bank Name" required>
@@ -518,10 +622,10 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
 
               {/* Nominee Details */}
               <div>
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-2">
-                  <Users className="h-4.5 w-4.5 text-primary" /> 4. Nominee Information
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <Users className="h-4.5 w-4.5 text-primary" /> 5. Nominee Information
                 </h3>
-                <div className="mt-4 grid sm:grid-cols-4 gap-4">
+                <div className="mt-4 grid sm:grid-cols-3 gap-4">
                   <Field label="Nominee Name" required>
                     <input
                       type="text"
@@ -540,7 +644,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                       value={nomineeRelationship}
                       onChange={(e) => setNomineeRelationship(e.target.value)}
                       className="input-field mt-1.5 h-11"
-                      placeholder="e.g. Spouse, Father"
+                      placeholder="e.g. Spouse, Parent"
                     />
                   </Field>
 
@@ -555,31 +659,21 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                       placeholder="10 digit phone"
                     />
                   </Field>
-
-                  <Field label="Nominee City" required>
-                    <input
-                      type="text"
-                      required
-                      value={nomineeCity}
-                      onChange={(e) => setNomineeCity(e.target.value)}
-                      className="input-field mt-1.5 h-11"
-                      placeholder="City of nominee"
-                    />
-                  </Field>
                 </div>
               </div>
 
               {error && (
-                <div className="rounded-xl bg-danger-soft text-danger border border-danger/10 text-xs px-4 py-3 font-semibold">
-                  ⚠️ {error}
+                <div className="rounded-xl bg-danger-soft text-danger border border-danger/10 text-xs px-4 py-3 font-semibold shadow-sm flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              <div className="flex justify-end pt-4 border-t border-border">
+              <div className="flex justify-end pt-4 border-t border-slate-100">
                 <button
                   type="submit"
                   disabled={updating}
-                  className="w-full sm:w-auto h-12 px-8 flex items-center justify-center rounded-xl bg-primary text-white font-bold shadow-btn hover:opacity-95 disabled:opacity-60 transition"
+                  className="w-full sm:w-auto h-12 px-8 flex items-center justify-center rounded-xl bg-primary text-white font-extrabold shadow-btn hover:opacity-95 disabled:opacity-60 transition"
                 >
                   {updating ? "Saving Progress…" : "Save Progress & Check Completeness"}
                 </button>
@@ -587,21 +681,23 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
             </form>
           ) : (
             /* Rules Acceptance view when profile completion reaches exactly 100% */
-            <div className="text-center py-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-success-soft text-success shadow-btn">
+            <div className="text-center py-6 animate-fade-in-up">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-success-soft text-success shadow-btn animate-float">
                 <CheckCircle className="h-8 w-8" />
               </div>
-              <h3 className="mt-6 text-2xl font-extrabold text-foreground tracking-tight">Profile 100% Completed!</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <h3 className="mt-6 text-2xl font-extrabold text-slate-800 tracking-tight">Profile 100% Completed!</h3>
+              <p className="mt-2 text-sm text-slate-500">
                 Your biographical, geocoded address, and bank payout records are verified.
               </p>
 
-              <div className="mt-8 max-w-xl mx-auto border border-border rounded-2xl bg-muted p-5 text-left text-xs leading-relaxed space-y-3">
-                <p className="font-bold text-foreground text-sm">📜 Platform Legal Rules click-wrap agreements (v1.0)</p>
-                <p className="text-muted-foreground">
+              <div className="mt-8 max-w-xl mx-auto border border-slate-200 rounded-2xl bg-slate-50 p-6 text-left text-xs leading-relaxed space-y-3 shadow-inner">
+                <p className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                  📜 Swachh Bharat Platform click-wrap legal rules (v1.0)
+                </p>
+                <p className="text-slate-500 font-medium">
                   By clicking accept, you acknowledge and agree that:
                 </p>
-                <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-600 font-semibold">
                   <li>Waste logs must consist strictly of physical resource collections backed with valid photo proof.</li>
                   <li>Filing fraudulent claims or duplicate payouts violates core directives and triggers account suspension.</li>
                   <li>Audit logs permanently document physical IP addresses and credentials traces for absolute transparency.</li>
@@ -612,9 +708,9 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                     type="checkbox"
                     checked={acceptRulesCheck}
                     onChange={(e) => setAcceptRulesCheck(e.target.checked)}
-                    className="mt-0.5 rounded text-primary focus:ring-primary h-4.5 w-4.5 cursor-pointer"
+                    className="mt-0.5 rounded text-primary focus:ring-primary h-4.5 w-4.5 cursor-pointer accent-primary"
                   />
-                  <span className="text-xs font-semibold text-foreground">
+                  <span className="text-xs font-bold text-slate-700">
                     I read, understood, and accept all the platform agreements and rules of the Athiyaman Platform.
                   </span>
                 </label>
@@ -624,7 +720,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={handleAcceptRules}
                   disabled={updating || !acceptRulesCheck}
-                  className="w-full max-w-xs h-12 flex items-center justify-center rounded-xl bg-success text-success-foreground font-bold shadow-btn hover:opacity-95 disabled:opacity-60 transition"
+                  className="w-full max-w-xs h-12 flex items-center justify-center rounded-xl bg-success text-white font-extrabold shadow-btn hover:opacity-95 disabled:opacity-60 transition"
                 >
                   {updating ? "Unlocking Account…" : "Accept Agreements & Unlock Dashboard"}
                 </button>
@@ -640,7 +736,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-bold text-foreground flex items-center gap-1">
+      <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
         {label} {required && <span className="text-danger">*</span>}
       </span>
       {children}

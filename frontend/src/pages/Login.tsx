@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Leaf, Mail, Lock, Eye, EyeOff, Recycle, TrendingUp, Wallet, AlertCircle } from "lucide-react";
+import { Leaf, Mail, Lock, Eye, EyeOff, Recycle, TrendingUp, Wallet, AlertCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { toast } from "sonner";
 
 export function Login() {
   const { user, signIn } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState("member1");
-  const [password, setPassword] = useState("Member@12345");
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem("remembered_username") || "";
+  });
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("remember_me") === "true";
+  });
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,6 +76,16 @@ export function Login() {
     setLoading(true);
     try {
       const u = await signIn(username.trim(), password);
+      
+      // Save Remember Me state
+      if (rememberMe) {
+        localStorage.setItem("remembered_username", username.trim());
+        localStorage.setItem("remember_me", "true");
+      } else {
+        localStorage.removeItem("remembered_username");
+        localStorage.setItem("remember_me", "false");
+      }
+
       toast.success(`Welcome back, ${u.username}!`);
       const dest = u.role === "ADMIN" ? "/admin" : u.role === "DEVELOPER" ? "/developer" : "/dashboard";
       navigate(dest, { replace: true });
@@ -123,9 +138,17 @@ export function Login() {
 
       {/* Right Form Panel - Sleek Floating Glass Panel */}
       <div className="md:col-span-7 flex items-center justify-center p-8 md:p-16 relative z-10">
-        <div className="w-full max-w-md bg-white/60 backdrop-blur-lg border border-white/70 p-10 rounded-[36px] shadow-2xl relative overflow-hidden animate-fade-in-up">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
+        <div className="w-full max-w-md bg-white/90 backdrop-blur-lg border border-slate-200/80 p-10 rounded-[36px] shadow-2xl relative overflow-hidden animate-fade-in-up gov-tricolor-bar">
           
+          {/* Elegant Back button at top-right */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="absolute right-6 top-6 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </button>
+
           <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-none">Welcome Back! 🙏</h2>
           <p className="mt-3 text-slate-500 text-xs font-semibold uppercase tracking-wider">Please sign in with your account to continue</p>
 
@@ -176,6 +199,19 @@ export function Login() {
               )}
             </Field>
 
+            {/* Remember Me */}
+            <div className="flex items-center justify-between py-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded text-primary focus:ring-primary h-4.5 w-4.5 cursor-pointer accent-primary"
+                />
+                <span className="text-xs font-bold text-slate-600">Remember me</span>
+              </label>
+            </div>
+
             {error && (
               <div className="rounded-2xl bg-danger-soft text-danger border border-danger/10 text-xs px-4 py-3 font-semibold shadow-sm flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -203,21 +239,7 @@ export function Login() {
             >
               Register with Referral Code
             </Link>
-
-            <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-wide">
-              Locked account? Wait 30 minutes or contact your team leader.
-            </p>
           </form>
-
-          {/* Premium Glass Demo references box */}
-          <div className="mt-8 rounded-2xl border border-white/50 bg-white/40 p-5 text-xs text-slate-600 shadow-sm">
-            <p className="font-extrabold text-slate-700 uppercase tracking-wider mb-2">Demo Credential References</p>
-            <ul className="space-y-1.5 text-[11px] font-medium">
-              <li>💡 <strong className="text-slate-800">Member:</strong> member1 / Member@12345</li>
-              <li>💡 <strong className="text-slate-800">Leader:</strong> leader1 / Lead@12345</li>
-              <li>💡 <strong className="text-slate-800">Admin:</strong> admin1 / Admin@12345</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>
